@@ -25,11 +25,14 @@ defined('MOODLE_INTERNAL') || die();
 
 class local_course_template_helper {
     public static function template_course($courseid) {
+        global $CFG;
 
         $templatecourseid = self::find_term_template($courseid);
         if ($templatecourseid == false) {
             return;
         }
+
+        $startdate = self::template_start_date($templatecourseid);
 
         // Create and extract template backup file.
         $backupid = \local_course_template_backup::create_backup($templatecourseid);
@@ -45,6 +48,11 @@ class local_course_template_helper {
 
         // Cleanup potential news forum duplication.
         self::prune_news_forums($courseid);
+
+        // Set the config (for this request only) to not add default blocks
+        // This is a tiny bit of a dirty hack, but it shouldn't affect anything
+        $CFG->defaultblocks_override = '';
+
         return true;
     }
 
@@ -56,18 +64,37 @@ class local_course_template_helper {
     protected static function find_term_template($courseid) {
         global $DB;
 
+        $templateshortname = get_config('local_course_template', 'templatenameformat');
+
+        $needstermcode = (strpos($templateshortname, '[TERMCODE]') !== false);
+        $needscatid = (strpos($templateshortname, '[CATID]') !== false);
+
+        $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+
+        $pairs = array();
+
+        if ($needstermcode) {
+
         // Don't continue if there's no pattern.
         $pattern = get_config('local_course_template', 'extracttermcode');
         if (empty($pattern)) {
             return false;
         }
 
-        $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
         $subject = $course->idnumber;
         preg_match($pattern, $subject, $matches);
         if (!empty($matches) && count($matches) >= 2) {
-            $templateshortname = str_replace('[TERMCODE]', $matches[1],
-                get_config('local_course_template', 'templatenameformat'));
+                $pairs['[TERMCODE]'] = $matches[1];
+            } else {
+                return false;
+            }
+        }
+
+        if ($needscatid) {
+            $pairs['[CATID]'] = $course->category;
+        }
+
+        $templateshortname = strtr($templateshortname, $pairs);
 
             // Check if the idnumber is cached.
             $cache = cache::make('local_course_template', 'templates');
@@ -84,10 +111,15 @@ class local_course_template_helper {
             } else {
                 return $templatecourseid;
             }
-        } else {
-            // This course doesn't conform to the given naming convention, so skip.
-            return false;
+
         }
+
+    protected static function template_start_date($templatecourseid) {
+        global $DB;
+
+        $course = $DB->get_record('course', array('id' => $templatecourseid), 'id,startdate', MUST_EXIST);
+
+        return $course->startdate;
     }
 
     /**
@@ -109,4 +141,5 @@ class local_course_template_helper {
             course_delete_module($cm->id);
         }
     }
+
 }

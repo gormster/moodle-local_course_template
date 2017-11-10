@@ -73,11 +73,11 @@ class local_course_template_backup {
         return $courseid;
     }
 
-    public static function restore_backup($templateid, $courseid) {
+    public static function restore_backup($templateid, $courseid, $startdate = 0) {
         $admin = get_admin();
         $rc = new restore_controller(
             $templateid, $courseid, backup::INTERACTIVE_NO, backup::MODE_SAMESITE, $admin->id, backup::TARGET_EXISTING_ADDING);
-        self::apply_defaults($rc);
+        self::apply_defaults($rc, $startdate);
         if (!$rc->execute_precheck(true)) {
             return false;
         }
@@ -89,7 +89,7 @@ class local_course_template_backup {
     /**
      * @copyright 2011 Louisiana State University
      */
-    protected static function apply_defaults($rc) {
+    protected static function apply_defaults($rc, $startdate = 0) {
         $settings = array(
             'enrol_migratetomanual' => 0,
             'users' => 0,
@@ -104,7 +104,8 @@ class local_course_template_backup {
             'grade_histories' => 0,
             'keep_roles_and_enrolments' => 0,
             'keep_groups_and_groupings' => 0,
-            'overwrite_conf' => 0
+            'overwrite_conf' => 1,
+            'course_startdate' => $startdate
         );
         foreach ($settings as $name => $value) {
             if ($rc->get_plan()->setting_exists($name)) {
