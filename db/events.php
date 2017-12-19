@@ -27,4 +27,35 @@ $observers = array(
         'eventname' => '\core\event\course_created',
         'callback'  => '\local_course_template\observers::course_created',
     ),
+    array(
+        'eventname' => '\core\event\course_updated',
+        'callback'  => '\local_course_template\observers::course_updated',
+        'internal' => false,
+    ),
+    array(
+        'eventname' => '\core\event\course_deleted',
+        'callback'  => '\local_course_template\observers::course_updated',
+        'internal' => false,
+    ),
+    array(
+        'eventname' => '\core\event\course_section_updated',
+        'callback'  => '\local_course_template\observers::course_updated',
+        'internal' => false,
+    ),
+    array(
+        'eventname' => '\core\event\course_module_created',
+        'callback'  => '\local_course_template\observers::course_updated',
+        'internal' => false,
+    ),
+    array(
+        'eventname' => '\core\event\course_module_updated',
+        'callback'  => '\local_course_template\observers::course_updated',
+        'internal' => false,
+    ),
+    array(
+        'eventname' => '\core\event\course_module_deleted',
+        'callback'  => '\local_course_template\observers::course_updated',
+        'internal' => false,
+    ),
+
 );

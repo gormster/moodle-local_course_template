@@ -52,11 +52,12 @@ class local_course_template_backup {
             $context = context_course::instance($courseid);
             $timestamp = time();
             $fs = get_file_storage();
+            $fs->delete_area_files($context->id, 'local_course_template', 'backup');
             $filerecord = array(
                 'contextid' => $context->id,
                 'component' => 'local_course_template',
                 'filearea' => 'backup',
-                'itemid' => $timestamp,
+                'itemid' => 1,
                 'filepath' => '/',
                 'filename' => 'template_backup.mbz',
                 'timecreated' => $timestamp,

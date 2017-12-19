@@ -37,4 +37,22 @@ class observers {
             $lock->release();
         }
     }
+
+    // This is actually triggered by a lot of events
+    public static function course_updated(\core\event\base $event) {
+        global $DB;
+        if(empty($event->courseid)) {
+            return;
+        }
+
+        $context = \context_course::instance($event->courseid);
+        $cache = \cache::make('local_course_template', 'backups');
+        $file = $cache->get($context->id);
+        if (empty($file)) {
+            return;
+        }
+
+        $cache->delete($context->id);
+
+    }
 }
