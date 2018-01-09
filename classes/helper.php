@@ -40,6 +40,9 @@ class local_course_template_helper {
             return false;
         }
 
+        // Fix number of sections
+        self::fix_number_of_sections($templatecourseid, $courseid);
+
         // Restore the backup.
         $status = \local_course_template_backup::restore_backup($backupid, $courseid);
         if (!$status) {
@@ -48,6 +51,7 @@ class local_course_template_helper {
 
         // Cleanup potential news forum duplication.
         self::prune_news_forums($courseid);
+        
 
         // Set the config (for this request only) to not add default blocks
         // This is a tiny bit of a dirty hack, but it shouldn't affect anything
@@ -140,6 +144,36 @@ class local_course_template_helper {
             $cm = get_coursemodule_from_instance('forum', $forum->id);
             course_delete_module($cm->id);
         }
+    }
+
+    protected static function fix_number_of_sections($templatecourseid, $courseid) {
+        $templateformat = course_get_format($templatecourseid);
+
+        // Not using sections? Do nothing.
+        if (!$templateformat->uses_sections()) {
+            return;
+        }
+
+        $courseformat = course_get_format($courseid);
+
+        $tsections = $templateformat->get_sections();
+        $csections = $courseformat->get_sections();
+
+        // First step - delete course sections that aren't in the template
+        foreach ($csections as $num => $section) {
+            if (empty($tsections[$num])) {
+                course_delete_section($courseid, $num);
+            }
+        }
+
+        // Second step - insert course sections that are in the template but not in the course
+        foreach ($tsections as $num => $section) {
+            if (empty($csections[$num])) {
+                course_create_section($courseid, $num);
+            }
+        }
+
+
     }
 
 }
