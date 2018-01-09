@@ -45,14 +45,24 @@ class observers {
             return;
         }
 
-        $context = \context_course::instance($event->courseid);
+        if(!$DB->record_exists('course', array('id' => $event->courseid))) {
+            if ($event instanceof \core\event\course_deleted) {
+                $contextid = $event->contextid;
+            } else {
+                return;
+            }
+        } else {
+            $context = \context_course::instance($event->courseid);
+            $contextid = $context->id;
+        }
+        
         $cache = \cache::make('local_course_template', 'backups');
-        $file = $cache->get($context->id);
+        $file = $cache->get($contextid);
         if (empty($file)) {
             return;
         }
 
-        $cache->delete($context->id);
+        $cache->delete($contextid);
 
     }
 }
