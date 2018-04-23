@@ -21,35 +21,37 @@
  * @copyright 2016 Lafayette College ITS
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+namespace local_course_template;
+
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/lib/filestorage/mbz_packer.php');
 require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
 require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
 
-class local_course_template_backup {
+class backup {
     public static function create_backup($courseid) {
         global $CFG;
 
         // Try to find the backup.
-        $context = context_course::instance($courseid);
-        $cache = cache::make('local_course_template', 'backups');
+        $context = \context_course::instance($courseid);
+        $cache = \cache::make('local_course_template', 'backups');
         $storedfile = $cache->get($context->id);
         if ($storedfile === false) {
 
             // Instantiate controller.
-            $bc = new backup_controller(
-                \backup::TYPE_1COURSE, $courseid, backup::FORMAT_MOODLE, backup::INTERACTIVE_NO, backup::MODE_GENERAL, 2);
+            $bc = new \backup_controller(
+                \backup::TYPE_1COURSE, $courseid, \backup::FORMAT_MOODLE, \backup::INTERACTIVE_NO, \backup::MODE_GENERAL, 2);
 
             // Run the backup.
-            $bc->set_status(backup::STATUS_AWAITING);
+            $bc->set_status(\backup::STATUS_AWAITING);
             $bc->execute_plan();
             $result = $bc->get_results();
             $bc->destroy();
 
             // Store the backup.
             $file = $result['backup_destination'];
-            $context = context_course::instance($courseid);
+            $context = \context_course::instance($courseid);
             $timestamp = time();
             $fs = get_file_storage();
             $fs->delete_area_files($context->id, 'local_course_template', 'backup');
@@ -69,15 +71,15 @@ class local_course_template_backup {
         }
 
         // Extract the backup.
-        $packer = new mbz_packer();
+        $packer = new \mbz_packer();
         $storedfile->extract_to_pathname($packer, "$CFG->tempdir/backup/$courseid");
         return $courseid;
     }
 
     public static function restore_backup($templateid, $courseid, $startdate = 0) {
         $admin = get_admin();
-        $rc = new restore_controller(
-            $templateid, $courseid, backup::INTERACTIVE_NO, backup::MODE_SAMESITE, $admin->id, backup::TARGET_EXISTING_ADDING);
+        $rc = new \restore_controller(
+            $templateid, $courseid, \backup::INTERACTIVE_NO, \backup::MODE_SAMESITE, $admin->id, \backup::TARGET_EXISTING_ADDING);
         self::apply_defaults($rc, $startdate);
         if (!$rc->execute_precheck(true)) {
             return false;
@@ -111,7 +113,7 @@ class local_course_template_backup {
         foreach ($settings as $name => $value) {
             if ($rc->get_plan()->setting_exists($name)) {
                 $setting = $rc->get_plan()->get_setting($name);
-                if ($setting->get_status() == backup_setting::NOT_LOCKED) {
+                if ($setting->get_status() == \backup_setting::NOT_LOCKED) {
                     $setting->set_value($value);
                 }
             }

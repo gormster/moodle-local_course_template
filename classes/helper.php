@@ -21,9 +21,11 @@
  * @copyright 2016 Lafayette College ITS
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+namespace local_course_template;
+
 defined('MOODLE_INTERNAL') || die();
 
-class local_course_template_helper {
+class helper {
     public static function template_course($courseid) {
         global $CFG;
 
@@ -35,7 +37,7 @@ class local_course_template_helper {
         $startdate = self::template_start_date($templatecourseid);
 
         // Create and extract template backup file.
-        $backupid = \local_course_template_backup::create_backup($templatecourseid);
+        $backupid = backup::create_backup($templatecourseid);
         if (!$backupid) {
             return false;
         }
@@ -44,14 +46,13 @@ class local_course_template_helper {
         self::fix_number_of_sections($templatecourseid, $courseid);
 
         // Restore the backup.
-        $status = \local_course_template_backup::restore_backup($backupid, $courseid);
+        $status = backup::restore_backup($backupid, $courseid);
         if (!$status) {
             return false;
         }
 
         // Cleanup potential news forum duplication.
         self::prune_news_forums($courseid);
-        
 
         // Set the config (for this request only) to not add default blocks
         // This is a tiny bit of a dirty hack, but it shouldn't affect anything
@@ -68,12 +69,18 @@ class local_course_template_helper {
     protected static function find_term_template($courseid) {
         global $DB;
 
+        $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+
+        return static::term_template_for($course);
+    }
+
+    public static function term_template_for($course) {
+        global $DB;
+
         $templateshortname = get_config('local_course_template', 'templatenameformat');
 
         $needstermcode = (strpos($templateshortname, '[TERMCODE]') !== false);
         $needscatid = (strpos($templateshortname, '[CATID]') !== false);
-
-        $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
 
         $pairs = array();
 
@@ -101,7 +108,7 @@ class local_course_template_helper {
         $templateshortname = strtr($templateshortname, $pairs);
 
             // Check if the idnumber is cached.
-            $cache = cache::make('local_course_template', 'templates');
+            $cache = \cache::make('local_course_template', 'templates');
             $templatecourseid = $cache->get($templateshortname);
             if ($templatecourseid == false) {
                 $templatecourse = $DB->get_record('course', array('shortname' => $templateshortname));
@@ -169,8 +176,11 @@ class local_course_template_helper {
         // Second step - insert course sections that are in the template but not in the course
         foreach ($tsections as $num => $section) {
             if (empty($csections[$num])) {
-                course_create_section($courseid, $num);
+                $csections[$num] = course_create_section($courseid, $num);
             }
+            $csect = $csections[$num];
+            $data = ["visible" => $section->visible]; // TODO: what other fields weren't applied by merge?
+            course_update_section($courseid, $csect, $data);
         }
 
 
